@@ -1,0 +1,49 @@
+name: Déployer sur GitHub Pages
+
+# Se déclenche à chaque push sur la branche de travail actuelle, ou
+# manuellement depuis l'onglet "Actions" de GitHub (workflow_dispatch).
+# Si le projet passe un jour sur une branche "main", ajoute-la ici.
+on:
+  push:
+    branches: [claude/festive-tesla-91gjdy]
+  workflow_dispatch:
+
+# Permissions minimales requises par actions/deploy-pages pour publier
+# sur GitHub Pages via OIDC (id-token) plutôt qu'avec un mot de passe.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Annule un déploiement en cours si un nouveau push arrive entre-temps.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
